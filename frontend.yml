@@ -1,0 +1,37 @@
+---
+- name: Implantar Frontend
+  hosts: frontend
+  become: yes
+  vars:
+    frontend_deploy_dest: /srv/frontend/
+  tasks:
+    - name: Instalar servidor web Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Copiar os artefatos do frontend
+      copy:
+        src: app-src/public/
+        dest: "{{ frontend_deploy_dest }}"
+      notify:
+        - Reiniciar Nginx
+
+    - name: Configura o Nginx para o frontend
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      notify:
+        - Reiniciar Nginx
+
+    - name: Garantir que a pasta de destino exista
+      file:
+        path: "{{ frontend_deploy_dest }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+  handlers:
+    - name: Reiniciar Nginx
+      shell: "nginx -t && service nginx restart"
